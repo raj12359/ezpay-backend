@@ -6,7 +6,7 @@ const cors = require("cors");
 const app = express();
 
 // -------------------- MIDDLEWARE --------------------
-app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(cors({ origin: "https://ezpay-customer-care.netlify.app", methods: ["GET", "POST", "PUT", "DELETE"] }));
 app.use(express.json());
 
 // -------------------- MONGODB CONNECT --------------------
